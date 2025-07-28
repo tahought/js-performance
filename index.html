@@ -2,592 +2,502 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <!-- ⑥ レスポンシブデザインのための設定 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JavaScriptパフォーマンス最適化術：早いコードは美しい</title>
-    <style>
-        /* Google Fonts */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
-
-        /* 基本スタイル */
-        :root {
-            --primary-color: #005a9c;
-            --primary-hover: #004a80;
-            --secondary-color: #3498db;
-            --background-color: #f8f9fa;
-            --card-background: #ffffff;
-            --text-color: #343a40;
-            --heading-color: #2c3e50;
-            --border-color: #e9ecef;
-            --shadow-color: rgba(0, 90, 156, 0.1);
-        }
-
-        body {
-            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.8;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 1rem;
-        }
-
-        /* ヘッダー */
-        header {
-            text-align: center;
-            padding: 4rem 1rem;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            border-radius: 0 0 20px 20px;
-            margin-bottom: 3rem;
-        }
-
-        header h1 {
-            font-size: 2.8rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
-
-        header p {
-            font-size: 1.1rem;
-            max-width: 700px;
-            margin: 0 auto;
-            opacity: 0.9;
-        }
-
-        /* 見出し */
-        h2, h3, h4 {
-            color: var(--heading-color);
-            font-weight: 700;
-        }
-
-        h2 {
-            font-size: 2rem;
-            border-bottom: 3px solid var(--primary-color);
-            padding-bottom: 0.5rem;
-            margin-top: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-
-        h3 {
-            font-size: 1.5rem;
-            margin-top: 2.5rem;
-        }
-        
-        h4 {
-            font-size: 1.2rem;
-            margin-top: 2rem;
-            margin-bottom: 0.5rem;
-        }
-
-        /* カード風セクション */
-        .card {
-            background: var(--card-background);
-            border-radius: 12px;
-            padding: 2rem 2.5rem;
-            margin-bottom: 2.5rem;
-            box-shadow: 0 8px 25px var(--shadow-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 30px var(--shadow-color);
-        }
-
-        /* コード表示 */
-        pre {
-            background-color: #2d2d2d;
-            color: #f8f8f2;
-            padding: 1.5rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            font-size: 0.95em;
-            line-height: 1.6;
-            min-height: 100px;
-        }
-
-        code {
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-        }
-
-        /* 用語解説 */
-        dfn {
-            font-style: normal;
-            border-bottom: 2px dotted var(--secondary-color);
-            cursor: help;
-            position: relative;
-        }
-
-        /* デモエリア */
-        .demo-box {
-            margin-top: 2rem;
-            padding: 2rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: #fdfdfd;
-        }
-        
-        .demo-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
-        
-        .demo-column p {
-            min-height: 80px;
-        }
-
-        button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            width: 100%;
-        }
-
-        button:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
-
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-            transform: translateY(0);
-            box-shadow: none;
-        }
-
-        #run-slow-dom, #run-slow-loop, #run-normal-load {
-            background-color: #e74c3c;
-        }
-        #run-slow-dom:hover, #run-slow-loop:hover, #run-normal-load:hover {
-            background-color: #c0392b;
-        }
-
-        #run-fast-dom, #run-fast-loop, #run-lazy-load {
-            background-color: #2ecc71;
-        }
-        #run-fast-dom:hover, #run-fast-loop:hover, #run-lazy-load:hover {
-            background-color: #27ae60;
-        }
-
-        #reset-all-demos {
-            background-color: #7f8c8d;
-        }
-        #reset-all-demos:hover {
-            background-color: #616a6b;
-        }
-
-        .result-display {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background-color: var(--border-color);
-            border-radius: 8px;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-            min-height: 2.5em;
-            transition: background-color 0.3s;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* 画像遅延読み込みデモ用スタイル */
-        .image-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-top: 1.5rem;
-            padding: 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            min-height: 300px;
-            background: #f0f0f0;
-        }
-        
-        .image-grid img {
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 8px;
-            background-color: #e0e0e0;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-        }
-
-        .image-grid img.loaded {
-            opacity: 1;
-        }
-        
-        /* フッター */
-        footer {
-            text-align: center;
-            padding: 2rem 1rem;
-            margin-top: 2rem;
-            color: #7f8c8d;
-            font-size: 0.9em;
-        }
-
-
-        /* レスポンシブ対応 */
-        @media (max-width: 768px) {
-            header h1 { font-size: 2.2rem; }
-            h2 { font-size: 1.8rem; }
-            .card { padding: 1.5rem; }
-            .demo-grid { grid-template-columns: 1fr; }
-            .demo-column p { min-height: auto; }
-        }
-    </style>
+    <!-- ④ 適切なタイトル（<title>タグ）を設定 -->
+    <title>Webサイト高速化 体験シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- ⑤ CSSは別ファイル（main.css）を参照 -->
+    <link rel="stylesheet" href="main.css">
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>JavaScriptパフォーマンス最適化術</h1>
-            <p>🚀 早いコードは美しい。ユーザーに愛され、未来の自分も助ける最適化の世界へようこそ！</p>
-        </header>
+<body class="bg-gray-50 text-gray-800">
 
-        <main>
-            <section class="card">
-                <h2>🤔 パフォーマンスとは何か？</h2>
-                <p>Webサイトの「パフォーマンス」とは、単に「速さ」のことだけではありません。主に3つの側面があります。</p>
-                <ul>
-                    <li><strong>実行速度:</strong> JavaScriptのコードが処理を完了するまでの時間。計算やデータ処理の速さです。</li>
-                    <li><strong>反応速度:</strong> ユーザーがボタンをクリックしたり、入力したりしたときに、画面が反応を返すまでの時間。これが遅いと「固まった？」と感じさせてしまいます。</li>
-                    <li><strong>描画速度:</strong> ページが画面に表示されるまでの時間や、アニメーションの滑らかさ。これが遅いと、ページの表示がもたついたり、カクカクした動きになったりします。</li>
-                </ul>
-                <p>例えば、検索ボタンを押しても10秒も結果が返ってこないサイト、スクロールするたびにカクつくブログ記事…そんな経験はありませんか？ユーザーは待ってくれません。パフォーマンスの低いサイトは、すぐに閉じられてしまうのです。</p>
-            </section>
+    <!-- Header / Problem Statement -->
+    <header class="bg-white">
+        <div class="max-w-5xl mx-auto px-6 py-12 text-center">
+            <h1 class="text-3xl md:text-5xl font-black text-gray-900 leading-tight">
+                なぜ、阿部寛さんのホームページは<br class="md:hidden"><span class="gradient-text">"爆速"</span>なのか！？
+            </h1>
+            <p class="mt-6 max-w-3xl mx-auto text-base md:text-lg text-gray-600">
+                阿部寛さんのホームページは知っていますか？爆速で開き、ラグても見ることができます。
+                最近のウェブサイトは多機能ですが、表示が遅くなりがちです。しかし、<a href="http://abehiroshi.la.coocan.jp/" target="_blank" class="text-indigo-600 hover:underline">阿部寛さん</a>や<a href="https://kattu0403.com/" target="_blank" class="text-indigo-600 hover:underline">かっつーさん</a>のサイトのように、速いをページもあります。
+            </p>
+            <p class="mt-4 max-w-3xl mx-auto text-base md:text-lg text-gray-600">
+                このシミュレーターで、サイトが"重く"なる原因を探してみましょう。
+            </p>
+        </div>
+    </header>
 
-            <section class="card">
-                <h2>🐢 よくある「遅いコード」と改善例</h2>
-                <p>初心者の頃に書いてしまいがちな非効率なコードと、その改善方法を並べて見ていきましょう。</p>
-                
-                <h3>例1：ループ処理の中での<dfn title="Document Object Modelの略。HTML要素をJavaScriptで操作するための仕組み。">DOM</dfn>操作</h3>
-                <p><strong>なぜ遅いのか？:</strong> DOM操作は、JavaScriptの計算に比べて非常にコストの高い処理です。ブラウザは `innerHTML` が変更されるたびに、ページの構造を再計算し、画面を再描画しようとします。これを何度も繰り返せば、当然遅くなります。</p>
-                
-                <h4>🐢 遅いコード</h4>
-                <pre><code>for (let i = 0; i < 2000; i++) {
-  // ループのたびに画面を書き換えている！
-  list.innerHTML += `&lt;li&gt;アイテム ${i}&lt;/li&gt;`;
-}</code></pre>
+    <!-- Simulator Section -->
+    <div class="max-w-7xl mx-auto my-8 p-4">
+        <div class="flex flex-col lg:flex-row w-full min-h-[70vh] bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+            <!-- Control Panel -->
+            <aside class="w-full lg:w-1/3 xl:w-1/4 bg-white p-6 border-r border-gray-200 flex flex-col">
+                <div class="flex-grow overflow-y-auto control-panel">
+                    <h2 class="text-2xl font-bold mb-1 text-gray-900">高速化シミュレーター</h2>
+                    <p class="text-sm text-gray-600 mb-6">サイトが"重く"なる過程を体験してみよう。</p>
 
-                <h4>🚀 改善コード</h4>
-                <pre><code>let htmlString = '';
-for (let i = 0; i < 2000; i++) {
-  // まずは高速な文字列結合だけを行う
-  htmlString += `&lt;li&gt;アイテム ${i}&lt;/li&gt;`;
-}
-// ループが終わってから、最後に一度だけ画面を書き換える
-list.innerHTML = htmlString;</code></pre>
-                <p><strong>改善のポイント:</strong> コストの高いDOM操作はループの外に出し、回数を最小限（この場合は1回）に抑えるのが鉄則です。</p>
-
-                <h3>例2：ループ条件でのプロパティへの繰り返しアクセス</h3>
-                <p><strong>なぜ遅いのか？:</strong> `array.length` のようなプロパティへのアクセスは、一見すると高速に思えます。しかし、ループで何百万回も繰り返されると、そのわずかなコストが積み重なって無視できない差になることがあります。</p>
-                
-                <h4>🐢 遅いコード</h4>
-                <pre><code>for (let i = 0; i < largeArray.length; i++) {
-  // ループのたびに .length にアクセスしている
-  // ...
-}</code></pre>
-
-                <h4>🚀 改善コード</h4>
-                <pre><code>const len = largeArray.length; // 先に長さを取得して変数に保存
-for (let i = 0; i < len; i++) {
-  // 変数を参照するので、プロパティへのアクセスが不要になる
-  // ...
-}</code></pre>
-                <p><strong>改善のポイント:</strong> ループ内で変化しない値は、ループの前に一度だけ取得して変数に保存（キャッシュ）しておきましょう。これにより、ループ中の無駄な処理をなくせます。</p>
-            </section>
-
-            <section class="card" id="demo-area">
-                <h2>⏱️ 比較体験：自分で計測してみよう！</h2>
-                <p>百聞は一見にしかず。実際にコードを動かして、その速さを体感してみましょう。<br>
-                ボタンを押すと、各処理の実行時間がコンソールと、この下に表示されます。</p>
-
-                <div class="demo-box">
-                    <h3>デモ1：実行速度（DOM操作）</h3>
-                    <div class="demo-grid">
-                        <div class="demo-column">
-                            <h4>🐢 遅いコード</h4>
-                            <p>ループの中で毎回DOMを操作するため、ブラウザの再描画が頻繁に発生し、処理が非常に遅くなります。</p>
-                            <pre><code>for (let i = 0; i < 2000; i++) {
-  dummy.innerHTML += '&lt;li&gt;...&lt;/li&gt;';
-}</code></pre>
-                            <button id="run-slow-dom">実行</button>
-                            <div id="result-dom-slow" class="result-display"></div>
+                    <div class="space-y-5">
+                        <!-- Base Page -->
+                        <div>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" id="base-html" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" checked disabled>
+                                <span class="font-semibold text-gray-800">基本のHTMLページ</span>
+                            </label>
+                            <p class="text-xs text-gray-500 ml-8 mt-1">ページの骨格となる最小限のテキスト。これが全ての基礎です。</p>
                         </div>
-                        <div class="demo-column">
-                            <h4>🚀 速いコード</h4>
-                            <p>HTML文字列を一旦変数に溜め込み、最後に一度だけDOMを操作するため、再描画が1回で済み、非常に高速です。</p>
-                            <pre><code>let str = '';
-for (let i = 0; i < 2000; i++) {
-  str += '&lt;li&gt;...&lt;/li&gt;';
-}
-dummy.innerHTML = str;</code></pre>
-                            <button id="run-fast-dom">実行</button>
-                            <div id="result-dom-fast" class="result-display"></div>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="demo-box">
-                    <h3>デモ2：実行速度（重いループ）</h3>
-                    <div class="demo-grid">
-                        <div class="demo-column">
-                            <h4>🐢 遅いコード</h4>
-                            <p>ループのたびに `largeArray.length` にアクセスするため、わずかなコストが積み重なります。</p>
-                            <pre><code>for (let i = 0; i < 500万; i++) {
-  // ...
-}</code></pre>
-                            <button id="run-slow-loop">実行</button>
-                            <div id="result-loop-slow" class="result-display"></div>
+                        <!-- Add Image -->
+                        <div>
+                            <span class="font-semibold text-gray-800">① 画像を追加</span>
+                            <fieldset class="mt-2 ml-3 space-y-2">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="image-choice" id="no-image" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300" checked>
+                                    <span class="text-sm">画像なし</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="image-choice" id="light-image" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    <span class="text-sm">軽い画像 (286KB)</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="image-choice" id="heavy-image" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300">
+                                    <span class="text-sm">重い画像 (756MB)</span>
+                                </label>
+                            </fieldset>
+                            <p class="text-xs text-gray-500 ml-3 mt-2">画像のデータ量がパフォーマンスに与える影響を体験できます。画像は<a href="https://www.photo-ac.com/" target="_blank" class="text-indigo-600 hover:underline">photoAC</a>より</p>
                         </div>
-                        <div class="demo-column">
-                            <h4>🚀 速いコード</h4>
-                            <p>ループの前に長さを変数にキャッシュ（保存）しておくことで、ループ中の無駄なアクセスをなくします。</p>
-                            <pre><code>const len = largeArray.length;
-for (let i = 0; i < len; i++) {
-  // ...
-}</code></pre>
-                            <button id="run-fast-loop">実行</button>
-                            <div id="result-loop-fast" class="result-display"></div>
+
+                        <!-- Add CSS -->
+                        <div>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" id="add-css" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="font-semibold text-gray-800">② CSSで装飾</span>
+                            </label>
+                            <p class="text-xs text-gray-500 ml-8 mt-1">サイトのデザインを指定します。複雑な装飾はブラウザの描画処理に負荷をかけます。</p>
+                        </div>
+
+                        <!-- Add Simple JS -->
+                        <div>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" id="add-simple-js" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="font-semibold text-gray-800">③ 簡単なJavaScriptを追加</span>
+                            </label>
+                            <p class="text-xs text-gray-500 ml-8 mt-1">カーソル追従エフェクト。少しのJSでも、常に処理が走るため負荷がかかります。</p>
+                        </div>
+
+                        <!-- Add External JS -->
+                        <div>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" id="add-external-js" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="font-semibold text-gray-800">④ 外部のJavaScriptを追加</span>
+                            </label>
+                            <p class="text-xs text-gray-500 ml-8 mt-1">SNSシェアボタンなど。外部サーバーとの通信が発生し、待ち時間が増えます。</p>
+                        </div>
+
+                        <!-- Add Heavy JS Library -->
+                        <div>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" id="add-heavy-js" class="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="font-semibold text-gray-800">⑤ 重いJSライブラリを追加</span>
+                            </label>
+                            <p class="text-xs text-gray-500 ml-8 mt-1">画像スライダー。高機能な反面、ファイルサイズが大きく、処理も複雑で最も影響が大きいです。</p>
                         </div>
                     </div>
                 </div>
                 
-                <div class="demo-box">
-                    <h3>デモ3：描画速度（画像の遅延読み込み）</h3>
-                    <p>ページ表示と同時に全画像を読み込むのと、スクロールに応じて表示領域に入った画像だけを読み込むのでは、どちらが快適でしょうか？</p>
-                    <div class="demo-grid">
-                        <div class="demo-column">
-                            <h4>🐢 通常読み込み</h4>
-                            <p>ページを開いた瞬間に、表示されていない画像も含めて全ての読み込みを開始します。画像が多いと初期表示が遅くなります。</p>
-                            <button id="run-normal-load">実行</button>
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                     <button id="reset-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
+                        リセットして速さを取り戻す
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-grow flex flex-col bg-gray-100">
+                <!-- Performance Metrics -->
+                <div class="bg-white p-4 shadow-md z-10 border-b border-gray-200">
+                    <h3 class="text-lg font-bold mb-2 text-center">パフォーマンス計測結果</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-center">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-sm text-blue-800 font-medium">ページ表示時間</p>
+                            <p id="load-time" class="text-2xl font-bold text-blue-900">... ms</p>
                         </div>
-                        <div class="demo-column">
-                            <h4>🚀 遅延読み込み</h4>
-                            <p>まずプレースホルダーを表示し、スクロールして画像が画面に近づいてから初めて、本当の画像の読み込みを開始します。</p>
-                            <button id="run-lazy-load">実行</button>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-sm text-green-800 font-medium">データ総量 (推定)</p>
+                            <p id="data-size" class="text-2xl font-bold text-green-900">... KB</p>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-lg col-span-2 md:col-span-1">
+                            <p class="text-sm text-purple-800 font-medium">リクエスト数 (推定)</p>
+                            <p id="request-count" class="text-2xl font-bold text-purple-900">...</p>
                         </div>
                     </div>
-                    <div id="image-container" class="image-grid">
-                        <p style="color: #777;">上のボタンを押して、画像の読み込み方を試してください。</p>
+                </div>
+
+                <!-- Website Preview -->
+                <div class="flex-grow p-4 relative">
+                    <div id="loader" class="absolute inset-0 flex items-center justify-center bg-gray-100/80 z-20">
+                        <div class="text-center">
+                            <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="mt-2 text-gray-600">ページを生成中...</p>
+                        </div>
                     </div>
+                    <iframe id="preview-frame" class="w-full h-full border-2 border-gray-300 rounded-lg bg-white invisible"></iframe>
                 </div>
-                
-                <div class="demo-box" style="text-align: center;">
-                    <button id="reset-all-demos" style="width: auto;">全デモをリセット</button>
-                </div>
-
-            </section>
-
-            <section class="card">
-                <h2>💡 プロも使う最適化習慣5選</h2>
-                <p>日々のコーディングで少し意識するだけで、パフォーマンスは大きく変わります。初心者でも今日からできる習慣を5つ紹介します。</p>
-                <ol>
-                    <li><strong>DOM操作は慎重に:</strong> 画面の書き換えは重い処理だと常に意識し、回数を減らせないか考えましょう。</li>
-                    <li><strong>ループを意識する:</strong> 何千、何万回と繰り返されるループの中の処理は、わずかな非効率が大きな遅延につながります。ループ内では重い処理を避けましょう。</li>
-                    <li><strong>計算結果を使い回す (キャッシュ):</strong> ループ内外に関わらず、同じ計算を何度も行うのは無駄です。結果を変数に保存して使い回しましょう。</li>
-                    <li><strong>イベント発火を制御する:</strong> `scroll` や `mousemove` のような頻繁に発生するイベントの処理は、<dfn title="処理を間引くテクニック。例えば、スクロールイベントで0.2秒ごとに処理を実行するなど。">スロットリング</dfn>や<dfn title="最後のイベント発生から一定時間後に処理を一度だけ実行するテクニック。入力完了後の検索などで使われる。">デバウンス</dfn>といったテクニックで実行回数を制御できないか検討しましょう。（これは少し発展的な内容です）</li>
-                    <li><strong>気軽に計測する:</strong>「どっちが速いかな？」と疑問に思ったら、`console.time()` ですぐに計測する癖をつけましょう。勘に頼らず、事実に基づいて判断することが重要です。</li>
-                </ol>
-            </section>
-
-            <section class="card">
-                <h2>✨ まとめ：速いコードは、すべてを良くする</h2>
-                <p>パフォーマンスを最適化することは、単なる自己満足ではありません。多くのメリットをもたらします。</p>
-                <ul>
-                    <li><strong>ユーザー体験の向上:</strong> サクサク動くWebサイトは、ユーザーの満足度を高め、離脱率を下げます。</li>
-                    <li><strong>省エネルギー:</strong> 無駄な計算を減らすことは、CPUの消費電力を抑えることにつながります。特にモバイルデバイスではバッテリー持ちに直結します。</li>
-                    <li><strong>保守性の向上:</strong> パフォーマンスを意識したコードは、結果的に無駄がなく、きれいで読みやすいコードになることが多いです。</li>
-                </ul>
-                <p>速いコードは、美しく、そしてユーザーにも地球にも優しいコードです。ぜひ今日から、パフォーマンスを意識したコーディングを心がけてみてください。</p>
-            </section>
-        </main>
-        
-        <footer>
-            <p>製作時間: 400分</p>
-        </footer>
+            </main>
+        </div>
     </div>
+
+    <!-- Technical Explanation Section -->
+    <section class="bg-white mt-16">
+        <div class="max-w-4xl mx-auto px-6 py-16">
+            <h2 class="text-3xl font-bold text-center mb-4">体験の技術解説</h2>
+            <p class="text-center text-gray-600 mb-12">シミュレーターで体験した「重さ」の正体を、コードと一緒に見ていきましょう。</p>
+
+            <!-- 1. 画像 -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-4">① 画像のデータ量</h3>
+                <p class="text-gray-600 mb-4">
+                    最も分かりやすい速度低下の原因は、データ量です。特に画像はウェブページのデータ量の大半を占めることがあります。「重い画像」は単純にファイルサイズが大きいため、ダウンロードに時間がかかります。
+                </p>
+                <div class="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre><code class="language-html">&lt;!-- 軽い画像 (100KB) --&gt;
+&lt;img src="flower"&gt;
+
+&lt;!-- 重い画像 (1MB = 1024KB) --&gt;
+&lt;img src="https://placehold.co/1200x800/.../Heavy+Image+(756MB)"&gt;</code></pre>
+                </div>
+                <p class="mt-4 p-3 bg-indigo-50 text-indigo-800 rounded-md text-sm">
+                    <strong>ポイント：</strong>Webサイトに画像を載せる際は、見た目が劣化しない範囲で、できるだけファイルサイズを小さく「圧縮」することが非常に重要です。
+                </p>
+            </div>
+
+            <!-- 2. CSS -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-4">② CSSによる描画負荷</h3>
+                <p class="text-gray-600 mb-4">
+                    CSSはサイトの見た目を整えますが、複雑な装飾やアニメーションは、ブラウザに「描画」という計算処理をさせます。これも積み重なるとパフォーマンスに影響します。
+                </p>
+                <div class="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre><code class="language-css">/* シミュレーターで追加したアニメーション */
+h1 {
+    animation: fadeInDown 1s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}</code></pre>
+                </div>
+                 <p class="mt-4 p-3 bg-indigo-50 text-indigo-800 rounded-md text-sm">
+                    <strong>ポイント：</strong>便利なアニメーションも、多用するとブラウザの仕事を増やしてしまいます。効果的な場所で控えめに使うのがコツです。
+                </p>
+            </div>
+
+            <!-- 3. 簡単なJavaScript -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-4">③ JavaScriptによる処理負荷</h3>
+                <p class="text-gray-600 mb-4">
+                    JavaScriptはページに「動き」を与えます。シミュレーターのカーソル追従エフェクトは、マウスが動くたびに常にプログラムが実行されています。このような小さな処理でも、常時実行されるとCPUに負荷をかけ続けます。
+                </p>
+                <div class="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre><code class="language-javascript">// マウスが動く"たびに"実行される処理
+window.addEventListener('mousemove', e => {
+    // パーティクルの座標を更新する
+    particle.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+});</code></pre>
+                </div>
+                 <p class="mt-4 p-3 bg-indigo-50 text-indigo-800 rounded-md text-sm">
+                    <strong>ポイント：</strong>ユーザーの操作に反応するインタラクティブな機能は便利ですが、その裏では常にプログラムが待機・実行されていることを意識する必要があります。
+                </p>
+            </div>
+
+            <!-- 4. 外部JavaScript -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-4">④ 外部ファイルによる通信</h3>
+                <p class="text-gray-600 mb-4">
+                    ウェブページは、自分のサーバーだけでなく、他のサーバーにあるファイル（外部ファイル）を読み込むことがあります。SNSボタンやWebフォント、広告などがこれにあたります。ファイルを読みに行くたびに「通信」が発生し、その待ち時間が表示速度に影響します。
+                </p>
+                <div class="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre><code class="language-html">&lt;!-- 外部のサーバー(cdnjs.cloudflare.com)からCSSファイルを読み込んでいる --&gt;
+&lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"&gt;</code></pre>
+                </div>
+                 <p class="mt-4 p-3 bg-indigo-50 text-indigo-800 rounded-md text-sm">
+                    <strong>ポイント：</strong>外部サービスの利用は手軽で便利ですが、リクエスト数を増やし、相手のサーバーの応答速度にも依存するため、パフォーマンス低下の要因になりやすいです。
+                </p>
+            </div>
+            
+            <!-- 5. 重いJSライブラリ -->
+            <div class="mb-12">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-4">⑤ 重いJavaScriptライブラリ</h3>
+                <!-- ③ 番号なし箇条書き（<ul>タグ） -->
+                <p class="text-gray-600 mb-4">
+                    現代のサイトが遅くなる最大の原因がこれです。画像スライダーなどを簡単に実装できる「ライブラリ」は、多くの機能が詰め込まれているため、これまでの要因をすべて含んでいます。
+                </p>
+                <ul class="list-disc list-inside text-gray-600 space-y-2 mb-4">
+                    <li><strong class="text-red-600">巨大なファイルサイズ：</strong>ライブラリ自体のファイルが大きい。</li>
+                    <li><strong class="text-red-600">複雑な処理：</strong>高機能な分、ブラウザが行う計算処理も複雑で重い。</li>
+                    <li><strong class="text-red-600">追加の通信：</strong>ライブラリがさらに別のファイルを読み込むこともある。</li>
+                </ul>
+                <div class="bg-gray-800 text-white p-4 rounded-lg text-sm overflow-x-auto">
+                    <pre><code class="language-html">&lt;!-- ライブラリ本体の読み込み（通信が発生し、ファイルサイズも大きい） --&gt;
+&lt;script src="https://unpkg.com/swiper/swiper-bundle.min.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+    // ライブラリを動作させるための命令（ブラウザがこれを解釈・実行する）
+    new Swiper('.swiper', {
+        loop: true,
+        // ...その他のたくさんの設定
+    });
+&lt;/script&gt;</code></pre>
+                </div>
+                 <p class="mt-4 p-3 bg-indigo-50 text-indigo-800 rounded-md text-sm">
+                    <strong>ポイント：</strong>ライブラリは開発を効率化しますが、本当にその全ての機能が必要か検討することが重要です。「少しの機能のために、巨大なライブラリを導入する」のは、パフォーマンスを悪化させる典型的なパターンです。
+                </p>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="text-center py-8 bg-gray-100">
+        <p class="text-gray-500">Webサイト高速化 体験シミュレーター</p>
+        <div class="mt-2 text-sm">
+            <a href="http://abehiroshi.la.coocan.jp/" target="_blank" class="text-indigo-600 hover:underline">参考: 阿部寛のホームページ</a> | 
+            <a href="https://kattu0403.com/" target="_blank" class="text-indigo-600 hover:underline">参考: かっつーのホームページ</a>
+        </div>
+        <p class="text-xs text-gray-400 mt-4">本コンテンツの作成時間（HTML/CSS/JavaScriptの設計・実装を含む）：約７時間</p>
+    </footer>
+
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        // DOM要素の取得
+        const controls = {
+            image: {
+                none: document.getElementById('no-image'),
+                light: document.getElementById('light-image'),
+                heavy: document.getElementById('heavy-image'),
+            },
+            css: document.getElementById('add-css'),
+            simpleJs: document.getElementById('add-simple-js'),
+            externalJs: document.getElementById('add-external-js'),
+            heavyJs: document.getElementById('add-heavy-js'),
+        };
+        const loadTimeEl = document.getElementById('load-time');
+        const dataSizeEl = document.getElementById('data-size');
+        const requestCountEl = document.getElementById('request-count');
+        const previewFrame = document.getElementById('preview-frame');
+        const loader = document.getElementById('loader');
+        const resetButton = document.getElementById('reset-button');
 
-            // --- 要素の取得 ---
-            const slowDomBtn = document.getElementById('run-slow-dom');
-            const fastDomBtn = document.getElementById('run-fast-dom');
-            const resultDomSlowDiv = document.getElementById('result-dom-slow');
-            const resultDomFastDiv = document.getElementById('result-dom-fast');
+        let startTime = 0;
 
-            const slowLoopBtn = document.getElementById('run-slow-loop');
-            const fastLoopBtn = document.getElementById('run-fast-loop');
-            const resultLoopSlowDiv = document.getElementById('result-loop-slow');
-            const resultLoopFastDiv = document.getElementById('result-loop-fast');
+        // 各要素のパフォーマンスコストを定義
+        const costs = {
+            base: { size: 3, requests: 1 },
+            lightImage: { size: 50, requests: 1 },
+            heavyImage: { size: 1024, requests: 1 },
+            css: { size: 15, requests: 1 },
+            simpleJs: { size: 2, requests: 0 },
+            externalJs: { size: 80, requests: 2 },
+            heavyJs: { size: 90, requests: 1 },
+        };
+
+        // シミュレーションを更新するメイン関数
+        const updateSimulation = () => {
+            loader.style.display = 'flex';
+            previewFrame.style.visibility = 'hidden';
             
-            const normalLoadBtn = document.getElementById('run-normal-load');
-            const lazyLoadBtn = document.getElementById('run-lazy-load');
-            const imageContainer = document.getElementById('image-container');
+            startTime = performance.now();
+
+            const { html, totalSize, requestCount } = generateHtmlContent();
             
-            const resetAllDemosBtn = document.getElementById('reset-all-demos');
+            previewFrame.srcdoc = html;
 
-            // --- 定数 (負荷を調整) ---
-            const DOM_ITERATIONS = 2000; // ストレスなく体感できる回数
-            const LOOP_ITERATIONS = 5000000; // 差が分かりやすいように調整
-            const IMAGE_COUNT = 50; // デモ用の画像数
-            const largeArray = new Array(LOOP_ITERATIONS).fill(0);
+            dataSizeEl.textContent = `${totalSize.toFixed(1)} KB`;
+            requestCountEl.textContent = `${requestCount}`;
+            loadTimeEl.textContent = '計測中...';
+        };
+        
+        // iframeの読み込みが完了したときの処理
+        previewFrame.onload = () => {
+            const endTime = performance.now();
+            const timeTaken = endTime - startTime;
+            loadTimeEl.textContent = `${timeTaken.toFixed(0)} ms`;
+            
+            loader.style.display = 'none';
+            previewFrame.style.visibility = 'visible';
+        };
 
-            let imageObserver = null;
+        // HTMLコンテンツとパフォーマンス値を生成する関数
+        const generateHtmlContent = () => {
+            let totalSize = costs.base.size;
+            let requestCount = costs.base.requests;
+            
+            const today = new Date();
+            const dateString = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+            
+            let styles =
+                '<style>' +
+                "body { font-family: 'MS PGothic', sans-serif; background-color: #FFFFCC; color: #333; padding: 1rem; }" +
+                "h1 { font-size: 1.5rem; border-bottom: 2px solid #000; }" +
+                ".content { margin-top: 1rem; }" +
+                '</style>';
 
-            // --- UI制御用の関数 ---
-            const setButtonsState = (buttons, disabled) => {
-                buttons.forEach(btn => btn.disabled = disabled);
-            };
+            let headScripts = '';
+            let bodyContent =
+                '<h1>阿部寛のホームページ（風）</h1>' +
+                '<div class="content">' +
+                '    <p>このサイトは爆速です。</p>' +
+                `    <p>更新日: ${dateString}</p>` +
+                '</div>';
 
-            // --- 共通処理関数 ---
-            const runTest = (testFunction, resultElement, buttonToDisable) => {
-                buttonToDisable.disabled = true;
-                resultElement.textContent = '処理中...';
+            let bodyScripts = '';
 
-                setTimeout(() => {
-                    try {
-                        const startTime = performance.now();
-                        const testName = testFunction.name;
-                        console.time(testName);
-                        
-                        testFunction(); // 実際の処理を実行
-
-                        const endTime = performance.now();
-                        console.timeEnd(testName);
-                        const duration = endTime - startTime;
-                        resultElement.textContent = `完了！ ${duration.toFixed(2)} ms`;
-                    } catch (e) {
-                        console.error(e);
-                        resultElement.textContent = 'エラーが発生しました。';
-                    } finally {
-                        buttonToDisable.disabled = false;
-                    }
-                }, 10);
-            };
-
-            // --- デモ1：DOM操作 ---
-            function slowDomTest() {
-                const dummyElement = document.createElement('ul');
-                for (let i = 0; i < DOM_ITERATIONS; i++) {
-                    dummyElement.innerHTML += `<li>アイテム ${i}</li>`;
-                }
+            // ① 画像の追加
+            if (controls.image.light.checked) {
+                totalSize += costs.lightImage.size;
+                requestCount += costs.lightImage.requests;
+                bodyContent +=
+                    '<h2 style="margin-top: 2rem; border-bottom: 1px solid #ccc;">追加された画像</h2>' +
+                    '<img src="png/keybord.jpg" alt="軽い画像" style="width: 100%; max-width: 400px; margin-top: 1rem;">';
+            } else if (controls.image.heavy.checked) {
+                totalSize += costs.heavyImage.size;
+                requestCount += costs.heavyImage.requests;
+                bodyContent +=
+                    '<h2 style="margin-top: 2rem; border-bottom: 1px solid #ccc;">追加された画像</h2>' +
+                    '<img src="png/fuzi.jpg" alt="重い画像" style="width: 100%; max-width: 400px; margin-top: 1rem;">';
+            } else if (controls.image.none.checked) {
+                bodyContent +=
+                    '<h2 style="margin-top: 2rem; border-bottom: 1px solid #ccc;">追加された画像</h2>' +
+                    '<p>画像は追加されていません。</p>';
             }
-            function fastDomTest() {
-                let htmlString = '';
-                for (let i = 0; i < DOM_ITERATIONS; i++) {
-                    htmlString += `<li>アイテム ${i}</li>`;
-                }
-                const dummyElement = document.createElement('ul');
-                dummyElement.innerHTML = htmlString;
+
+            // ② CSSの追加
+            if (controls.css.checked) {
+                totalSize += costs.css.size;
+                requestCount += costs.css.requests;
+                styles +=
+                    '<style>' +
+                    "body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); font-family: 'Helvetica', sans-serif; }" +
+                    "h1 { color: #2c3e50; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); animation: fadeInDown 1s ease-out; }" +
+                    "@keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }" +
+                    '</style>';
             }
 
-            // --- デモ2：ループ処理 ---
-            function slowLoopTest() {
-                let dummyValue = 0;
-                for (let i = 0; i < largeArray.length; i++) {
-                    dummyValue += i;
-                }
+            // ③ 簡単なJSの追加
+            if (controls.simpleJs.checked) {
+                totalSize += costs.simpleJs.size;
+                requestCount += costs.simpleJs.requests;
+                bodyScripts +=
+                    '<script>' +
+                    "const particle = document.createElement('div');" +
+                    "particle.style.position = 'fixed'; particle.style.top = '0'; particle.style.left = '0';" +
+                    "particle.style.width = '10px'; particle.style.height = '10px'; particle.style.borderRadius = '50%';" +
+                    "particle.style.backgroundColor = 'rgba(255,0,0,0.5)'; particle.style.pointerEvents = 'none';" +
+                    "particle.style.zIndex = '9999'; particle.style.transition = 'transform 0.1s ease-out';" +
+                    "document.body.appendChild(particle);" +
+                    "window.addEventListener('mousemove', e => { particle.style.transform = 'translate(' + e.clientX + 'px, ' + e.clientY + 'px)'; });" +
+                    '<\/script>';
             }
-            function fastLoopTest() {
-                const len = largeArray.length;
-                let dummyValue = 0;
-                for (let i = 0; i < len; i++) {
-                    dummyValue += i;
-                }
+            
+            // ④ 外部JSの追加
+            if (controls.externalJs.checked) {
+                totalSize += costs.externalJs.size;
+                requestCount += costs.externalJs.requests;
+                headScripts += '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">';
+                bodyContent +=
+                    '<div style="margin-top: 2rem;">' +
+                    '    <h2 style="border-bottom: 1px solid #ccc;">外部サービス連携</h2>' +
+                    '    <p>SNSシェアボタン (FontAwesome使用)</p>' +
+                    '    <i class="fab fa-twitter fa-2x" style="color: #1DA1F2; margin-right: 10px;"></i>' +
+                    '    <i class="fab fa-facebook fa-2x" style="color: #1877F2;"></i>' +
+                    '</div>';
             }
             
-            // --- デモ3：画像の遅延読み込み ---
-            const createImage = (isLazy, index) => {
-                const img = document.createElement('img');
-                const imageUrl = `https://placehold.co/300x300/3498db/ffffff?text=Image+${index+1}`;
-                if (isLazy) {
-                    img.dataset.src = imageUrl;
-                    img.src = 'https://placehold.co/30x30/e0e0e0/e0e0e0?text=...'; // プレースホルダー
-                } else {
-                    img.src = imageUrl;
-                    img.onload = () => img.classList.add('loaded');
-                }
-                return img;
-            };
+            // ⑤ 重いJSライブラリの追加
+            if (controls.heavyJs.checked) {
+                totalSize += costs.heavyJs.size;
+                requestCount += costs.heavyJs.requests;
+                headScripts += '<link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />';
+                bodyScripts += '<script src="https://unpkg.com/swiper/swiper-bundle.min.js"><\/script>';
+                bodyContent +=
+                    '<div style="margin-top: 2rem;">' +
+                    '    <h2 style="border-bottom: 1px solid #ccc;">画像スライダー (JSライブラリ)</h2>' +
+                    '    <div class="swiper" style="width: 100%; max-width: 400px; height: 250px; margin-top: 1rem; background: #eee;">' +
+                    '        <div class="swiper-wrapper">' +
+                    '            <div class="swiper-slide" style="display:flex; align-items:center; justify-content:center; background-color:#7E57C2; color:white;">Slide 1</div>' +
+                    '            <div class="swiper-slide" style="display:flex; align-items:center; justify-content:center; background-color:#5C6BC0; color:white;">Slide 2</div>' +
+                    '            <div class="swiper-slide" style="display:flex; align-items:center; justify-content:center; background-color:#42A5F5; color:white;">Slide 3</div>' +
+                    '        </div>' +
+                    '        <div class="swiper-button-next"></div>' +
+                    '        <div class="swiper-button-prev"></div>' +
+                    '        <div class="swiper-pagination"></div>' +
+                    '    </div>' +
+                    '</div>';
+                bodyScripts +=
+                    '<script>' +
+                    "window.addEventListener('load', function() {" +
+                    "    try {" +
+                    "        new Swiper('.swiper', {" +
+                    "            navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' }," +
+                    "            pagination: { el: '.swiper-pagination' }," +
+                    "            loop: true" +
+                    "        });" +
+                    "    } catch (e) { console.error('Swiper initialization failed inside iframe:', e); }" +
+                    "});" +
+                    '<\/script>';
+            }
 
-            const setupImages = (isLazy) => {
-                imageContainer.innerHTML = '';
-                setButtonsState([normalLoadBtn, lazyLoadBtn], true);
+            const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    ${styles}
+                    ${headScripts}
+                </head>
+                <body>
+                    ${bodyContent}
+                    ${bodyScripts}
+                </body>
+                </html>
+            `;
 
-                for (let i = 0; i < IMAGE_COUNT; i++) {
-                    imageContainer.appendChild(createImage(isLazy, i));
-                }
+            return { html, totalSize, requestCount };
+        };
 
-                if (isLazy) {
-                    setupLazyLoadObserver();
-                }
-                 setButtonsState([normalLoadBtn, lazyLoadBtn], false);
-            };
-            
-            const setupLazyLoadObserver = () => {
-                if(imageObserver) {
-                    imageObserver.disconnect();
-                }
-
-                imageObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const img = entry.target;
-                            img.src = img.dataset.src;
-                            img.onload = () => img.classList.add('loaded');
-                            observer.unobserve(img);
-                        }
-                    });
-                }, { rootMargin: "0px 0px 200px 0px" }); // 画面下200pxまで来たら読み込み開始
-
-                const images = imageContainer.querySelectorAll('img[data-src]');
-                images.forEach(img => imageObserver.observe(img));
-            };
-
-            const resetAllDemos = () => {
-                // デモ1のリセット
-                resultDomSlowDiv.textContent = '';
-                resultDomFastDiv.textContent = '';
-                // デモ2のリセット
-                resultLoopSlowDiv.textContent = '';
-                resultLoopFastDiv.textContent = '';
-                // デモ3のリセット
-                if(imageObserver) imageObserver.disconnect();
-                imageContainer.innerHTML = '<p style="color: #777;">上のボタンを押して、画像の読み込み方を試してください。</p>';
-                
-                console.clear();
-                console.log("全デモをリセットしました。");
-            };
-
-            // --- イベントリスナーの設定 ---
-            slowDomBtn.addEventListener('click', () => runTest(slowDomTest, resultDomSlowDiv, slowDomBtn));
-            fastDomBtn.addEventListener('click', () => runTest(fastDomTest, resultDomFastDiv, fastDomBtn));
-            
-            slowLoopBtn.addEventListener('click', () => runTest(slowLoopTest, resultLoopSlowDiv, slowLoopBtn));
-            fastLoopBtn.addEventListener('click', () => runTest(fastLoopTest, resultLoopFastDiv, fastLoopBtn));
-
-            normalLoadBtn.addEventListener('click', () => setupImages(false));
-            lazyLoadBtn.addEventListener('click', () => setupImages(true));
-            
-            resetAllDemosBtn.addEventListener('click', resetAllDemos);
+        const resetSimulation = () => {
+            controls.image.none.checked = true;
+            controls.css.checked = false;
+            controls.simpleJs.checked = false;
+            controls.externalJs.checked = false;
+            controls.heavyJs.checked = false;
+            updateSimulation();
+        };
+        
+        // すべてのコントロールにイベントリスナーを設定
+        document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(input => {
+            if(input.id !== 'base-html') {
+                input.addEventListener('change', updateSimulation);
+            }
         });
+
+        resetButton.addEventListener('click', resetSimulation);
+
+        window.addEventListener('load', updateSimulation);
+
     </script>
 </body>
 </html>
